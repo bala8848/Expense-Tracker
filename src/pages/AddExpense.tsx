@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { X, Check, Calendar, StickyNote, Plus } from 'lucide-react';
-import { BUILT_IN_CATEGORIES, CUSTOM_COLORS, type CategoryDef } from '../constants/categories';
+import { EXPENSE_CATEGORIES, CUSTOM_COLORS, type CategoryDef } from '../constants/categories';
 import { supabase } from '../lib/supabase';
 import { todayDateStr, formatDisplayDate } from '../lib/date';
 import type { CustomCategory } from '../types/expense';
@@ -15,7 +15,7 @@ export default function AddExpense() {
 
   const [amount, setAmount] = useState(isEditing ? searchParams.get('editAmount') ?? '' : '');
   const [selectedCategory, setSelectedCategory] = useState<CategoryDef>(
-    BUILT_IN_CATEGORIES.find((c) => c.value === searchParams.get('editCategory')) ?? BUILT_IN_CATEGORIES[0]
+    EXPENSE_CATEGORIES.find((c) => c.value === searchParams.get('editCategory')) ?? EXPENSE_CATEGORIES[0]
   );
   const [note, setNote] = useState(isEditing ? searchParams.get('editNote') ?? '' : '');
   const [expenseDate, setExpenseDate] = useState(isEditing ? searchParams.get('editDate') ?? todayDateStr() : todayDateStr());
@@ -33,11 +33,11 @@ export default function AddExpense() {
   }, []);
 
   const allCategories: CategoryDef[] = [
-    ...BUILT_IN_CATEGORIES,
+    ...EXPENSE_CATEGORIES,
     ...customCats.map((c) => ({
       label: c.name,
       value: c.name,
-      icon: BUILT_IN_CATEGORIES[BUILT_IN_CATEGORIES.length - 1].icon,
+      icon: EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1].icon,
       color: c.color,
       isCustom: true,
     })),
@@ -58,7 +58,7 @@ export default function AddExpense() {
         setSelectedCategory({
           label: newCat.name,
           value: newCat.name,
-          icon: BUILT_IN_CATEGORIES[BUILT_IN_CATEGORIES.length - 1].icon,
+          icon: EXPENSE_CATEGORIES[EXPENSE_CATEGORIES.length - 1].icon,
           color: newCat.color,
           isCustom: true,
         });

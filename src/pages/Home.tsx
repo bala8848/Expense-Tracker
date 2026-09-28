@@ -4,7 +4,7 @@ import { Plus, TrendingUp, TrendingDown, Calendar, Receipt, ChevronRight, Wallet
 import { supabase } from '../lib/supabase';
 import { formatCurrency, formatCompactCurrency } from '../lib/currency';
 import { formatMonthYear, getMonthRange, todayDateStr } from '../lib/date';
-import { getCategoryDef } from '../constants/categories';
+import { getCategoryDef, isExpenseCategory } from '../constants/categories';
 import ExpenseCard from '../components/ExpenseCard';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { calculateIncomeSummary } from '../lib/budget';
@@ -43,9 +43,9 @@ export default function Home() {
       const today = todayDateStr();
 
       const [monthRes, todayRes, prevRes, catRes, recentRes, budgetRes, recurringRes, customCatRes] = await Promise.all([
-        supabase.from('expenses').select('amount').gte('expense_date', monthRange.start).lte('expense_date', monthRange.end),
-        supabase.from('expenses').select('amount').eq('expense_date', today),
-        supabase.from('expenses').select('amount').gte('expense_date', prevRange.start).lte('expense_date', prevRange.end),
+        supabase.from('expenses').select('amount, category').gte('expense_date', monthRange.start).lte('expense_date', monthRange.end),
+        supabase.from('expenses').select('amount, category').eq('expense_date', today),
+        supabase.from('expenses').select('amount, category').gte('expense_date', prevRange.start).lte('expense_date', prevRange.end),
         supabase.from('expenses').select('category, amount').gte('expense_date', monthRange.start).lte('expense_date', monthRange.end),
         supabase.from('expenses').select('*').order('expense_date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
         supabase.from('budget_settings').select('*').maybeSingle(),
@@ -62,12 +62,18 @@ export default function Home() {
       if (recurringRes.error) throw recurringRes.error;
       if (customCatRes.error) throw customCatRes.error;
 
-      setMonthTotal((monthRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0));
-      setTodayTotal((todayRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0));
-      setPrevMonthTotal((prevRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0));
+      const monthEntries = (monthRes.data ?? []).filter((r) => isExpenseCategory(r.category));
+      const todayEntries = (todayRes.data ?? []).filter((r) => isExpenseCategory(r.category));
+      const prevEntries = (prevRes.data ?? []).filter((r) => isExpenseCategory(r.category));
+      const catEntries = (catRes.data ?? []).filter((r) => isExpenseCategory(r.category));
+      const recentEntries = (recentRes.data ?? []).filter((r) => isExpenseCategory(r.category)) as Expense[];
+
+      setMonthTotal(monthEntries.reduce((s, r) => s + Number(r.amount), 0));
+      setTodayTotal(todayEntries.reduce((s, r) => s + Number(r.amount), 0));
+      setPrevMonthTotal(prevEntries.reduce((s, r) => s + Number(r.amount), 0));
 
       const catMap = new Map<string, { total: number; count: number }>();
-      (catRes.data ?? []).forEach((r) => {
+      catEntries.forEach((r) => {
         const existing = catMap.get(r.category) ?? { total: 0, count: 0 };
         existing.total += Number(r.amount);
         existing.count += 1;
@@ -77,7 +83,7 @@ export default function Home() {
         Array.from(catMap.entries()).map(([category, v]) => ({ category, total: v.total, count: v.count })).sort((a, b) => b.total - a.total)
       );
 
-      setRecentExpenses((recentRes.data ?? []) as Expense[]);
+      setRecentExpenses(recentEntries);
       setBudget(budgetRes.data as BudgetSettings | null);
       setRecurring((recurringRes.data ?? []) as RecurringExpense[]);
       setCustomCats((customCatRes.data ?? []) as CustomCategory[]);

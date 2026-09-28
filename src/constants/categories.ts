@@ -33,9 +33,14 @@ export const BUILT_IN_CATEGORIES: CategoryDef[] = [
   { label: 'Travel', value: 'Travel', icon: Plane, color: '#F97316' },
   { label: 'Electronics', value: 'Electronics', icon: Smartphone, color: '#6366F1' },
   { label: 'Gifts', value: 'Gifts', icon: Gift, color: '#D946EF' },
-  { label: 'Income', value: 'Income', icon: Wallet, color: '#22C55E' },
   { label: 'Other', value: 'Other', icon: MoreHorizontal, color: '#64748B' },
 ];
+
+export const EXPENSE_CATEGORIES = BUILT_IN_CATEGORIES.filter((c) => c.value !== 'Income');
+
+export function isExpenseCategory(value: string): boolean {
+  return String(value).trim().toLowerCase() !== 'income';
+}
 
 export const CUSTOM_COLORS = [
   '#F59E0B', '#3B82F6', '#EC4899', '#8B5CF6', '#EF4444',

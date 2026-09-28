@@ -7,7 +7,7 @@ import { formatMonthYear, formatDisplayDate, getMonthRange } from '../lib/date';
 import MonthNavigator from '../components/MonthNavigator';
 import ExpenseCard from '../components/ExpenseCard';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
-import { getCategoryDef } from '../constants/categories';
+import { getCategoryDef, isExpenseCategory } from '../constants/categories';
 import type { Expense, CategoryTotal, CustomCategory } from '../types/expense';
 
 export default function History() {
@@ -43,12 +43,12 @@ export default function History() {
       if (customCatRes.error) throw customCatRes.error;
       setCustomCats((customCatRes.data ?? []) as CustomCategory[]);
 
-      const expData = (expRes.data ?? []) as Expense[];
+      const expData = ((expRes.data ?? []) as Expense[]).filter((r) => isExpenseCategory(r.category));
       setExpenses(expData);
       setMonthTotal(expData.reduce((s, r) => s + Number(r.amount), 0));
 
       const catMap = new Map<string, { total: number; count: number }>();
-      (catRes.data ?? []).forEach((r) => {
+      (catRes.data ?? []).filter((r) => isExpenseCategory(r.category)).forEach((r) => {
         const existing = catMap.get(r.category) ?? { total: 0, count: 0 };
         existing.total += Number(r.amount);
         existing.count += 1;

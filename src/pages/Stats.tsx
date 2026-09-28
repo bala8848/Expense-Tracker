@@ -3,7 +3,7 @@ import { BarChart3, TrendingUp, Calendar, ChevronLeft, ChevronRight } from 'luci
 import { supabase } from '../lib/supabase';
 import { formatCurrency, formatCompactCurrency } from '../lib/currency';
 import { getMonthName, getYearRange } from '../lib/date';
-import { getCategoryDef } from '../constants/categories';
+import { getCategoryDef, isExpenseCategory } from '../constants/categories';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import type { CategoryTotal } from '../types/expense';
 
@@ -23,7 +23,7 @@ export default function Stats() {
     try {
       const range = getYearRange(year);
       const [yearRes, catRes] = await Promise.all([
-        supabase.from('expenses').select('amount, expense_date').gte('expense_date', range.start).lte('expense_date', range.end),
+        supabase.from('expenses').select('amount, expense_date, category').gte('expense_date', range.start).lte('expense_date', range.end),
         supabase.from('expenses').select('category, amount').gte('expense_date', range.start).lte('expense_date', range.end),
       ]);
 
@@ -31,7 +31,7 @@ export default function Stats() {
       if (catRes.error) throw catRes.error;
 
       const monthTotals = new Array(12).fill(0);
-      (yearRes.data ?? []).forEach((r) => {
+      (yearRes.data ?? []).filter((r) => isExpenseCategory(r.category)).forEach((r) => {
         const m = new Date(r.expense_date + 'T00:00:00').getMonth();
         monthTotals[m] += Number(r.amount);
       });
@@ -39,7 +39,7 @@ export default function Stats() {
       setYearTotal(monthTotals.reduce((s, v) => s + v, 0));
 
       const catMap = new Map<string, { total: number; count: number }>();
-      (catRes.data ?? []).forEach((r) => {
+      (catRes.data ?? []).filter((r) => isExpenseCategory(r.category)).forEach((r) => {
         const existing = catMap.get(r.category) ?? { total: 0, count: 0 };
         existing.total += Number(r.amount);
         existing.count += 1;
