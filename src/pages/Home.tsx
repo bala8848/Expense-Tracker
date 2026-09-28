@@ -7,6 +7,7 @@ import { formatMonthYear, getMonthRange, todayDateStr } from '../lib/date';
 import { getCategoryDef } from '../constants/categories';
 import ExpenseCard from '../components/ExpenseCard';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { calculateIncomeSummary } from '../lib/budget';
 import type { Expense, CategoryTotal, BudgetSettings, RecurringExpense, CustomCategory } from '../types/expense';
 
 export default function Home() {
@@ -123,10 +124,11 @@ export default function Home() {
   const isIncrease = (monthTotal ?? 0) > (prevMonthTotal ?? 0);
   const maxCatTotal = categoryTotals.length > 0 ? categoryTotals[0].total : 0;
   const monthlyBudget = budget?.monthly_budget ?? 0;
-  const remaining = monthlyBudget - (monthTotal ?? 0);
-  const spentPct = monthlyBudget > 0 ? Math.min(((monthTotal ?? 0) / monthlyBudget) * 100, 100) : 0;
-  const isOverBudget = remaining < 0;
   const recurringTotal = recurring.reduce((s, r) => s + Number(r.amount), 0);
+  const incomeSummary = calculateIncomeSummary({ income: monthlyBudget, spent: monthTotal ?? 0, recurring: recurringTotal });
+  const remaining = incomeSummary.remaining;
+  const spentPct = incomeSummary.spentPercent;
+  const isOverBudget = remaining < 0;
 
   return (
     <div className="page-content">
@@ -145,7 +147,7 @@ export default function Home() {
       {monthlyBudget > 0 && (
         <div className="budget-mini-card" onClick={() => navigate('/budget')}>
           <div className="budget-mini-info">
-            <div className="budget-mini-label">Budget Status</div>
+            <div className="budget-mini-label">Income Balance</div>
             <div className="budget-mini-amount">{formatCurrency(remaining)} <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-tertiary)' }}>remaining</span></div>
             <div className="budget-mini-bar">
               <div className="budget-mini-bar-fill" style={{ width: `${spentPct}%`, background: isOverBudget ? 'var(--error)' : 'var(--primary)' }} />
@@ -187,7 +189,7 @@ export default function Home() {
       {recurring.length > 0 && (
         <div className="section">
           <div className="section-header">
-            <div className="section-title" style={{ marginBottom: 0 }}>Recurring Expenses</div>
+            <div className="section-title" style={{ marginBottom: 0 }}>Default Spends</div>
             <button className="see-all-btn" onClick={() => navigate('/recurring')}>
               See All <ChevronRight size={16} strokeWidth={2} />
             </button>
@@ -197,7 +199,7 @@ export default function Home() {
               <Repeat color="var(--primary)" size={20} strokeWidth={2} />
             </div>
             <div className="expense-info">
-              <div className="expense-category">{recurring.length} active recurring {recurring.length === 1 ? 'expense' : 'expenses'}</div>
+              <div className="expense-category">{recurring.length} active default spend{recurring.length === 1 ? '' : 's'}</div>
               <div className="expense-note">Total: {formatCurrency(recurringTotal)} / month</div>
             </div>
             <ChevronRight color="var(--text-tertiary)" size={20} strokeWidth={2} />

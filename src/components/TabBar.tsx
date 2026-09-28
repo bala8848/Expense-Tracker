@@ -14,11 +14,11 @@ export default function TabBar() {
       </NavLink>
       <NavLink to="/budget" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
         <Wallet size={22} strokeWidth={2} />
-        <span className="tab-item-label">Budget</span>
+        <span className="tab-item-label">Income</span>
       </NavLink>
       <NavLink to="/recurring" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
         <Repeat size={22} strokeWidth={2} />
-        <span className="tab-item-label">Recurring</span>
+        <span className="tab-item-label">Default Spends</span>
       </NavLink>
       <NavLink to="/stats" className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}>
         <BarChart3 size={22} strokeWidth={2} />

@@ -3,6 +3,7 @@ import { Wallet, TrendingUp, TrendingDown, PiggyBank } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../lib/currency';
 import { formatMonthYear, getMonthRange } from '../lib/date';
+import { calculateIncomeSummary } from '../lib/budget';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import type { BudgetSettings } from '../types/expense';
 
@@ -94,8 +95,10 @@ export default function Budget() {
   };
 
   const monthlyBudget = budget?.monthly_budget ?? 0;
-  const remaining = monthlyBudget - monthSpent;
-  const spentPct = monthlyBudget > 0 ? (monthSpent / monthlyBudget) * 100 : 0;
+  const monthlyIncome = monthlyBudget;
+  const summary = calculateIncomeSummary({ income: monthlyIncome, spent: monthSpent, recurring: recurringTotal });
+  const remaining = summary.remaining;
+  const spentPct = summary.spentPercent;
   const isOverBudget = remaining < 0;
   const monthLabel = formatMonthYear(currentMonth, currentYear);
 
@@ -120,7 +123,7 @@ export default function Budget() {
   return (
     <div className="page-content">
       <div className="page-header">
-        <div className="page-header-title">Budget</div>
+        <div className="page-header-title">Income</div>
       </div>
 
       {error && <ErrorState message={error} onRetry={fetchData} />}
@@ -135,11 +138,11 @@ export default function Budget() {
         <div className="budget-hero-card" style={{ background: isOverBudget ? 'linear-gradient(135deg, #EF4444, #DC2626)' : 'linear-gradient(135deg, var(--primary), var(--primary-dark))' }}>
           <div className="budget-hero-top">
             <div>
-              <div className="budget-hero-label">Monthly Budget</div>
-              <div className="budget-hero-amount">{formatCurrency(monthlyBudget)}</div>
+              <div className="budget-hero-label">Monthly Income</div>
+              <div className="budget-hero-amount">{formatCurrency(monthlyIncome)}</div>
             </div>
-            <button className="budget-edit-btn" onClick={() => { setBudgetInput(String(monthlyBudget || '')); setEditingBudget(true); }}>
-              {monthlyBudget > 0 ? 'Edit' : 'Set'}
+            <button className="budget-edit-btn" onClick={() => { setBudgetInput(String(monthlyIncome || '')); setEditingBudget(true); }}>
+              {monthlyIncome > 0 ? 'Edit' : 'Set'}
             </button>
           </div>
 
@@ -156,7 +159,7 @@ export default function Budget() {
                   />
                 </div>
                 <div className="budget-progress-labels">
-                  <span>Spent: {formatCurrency(monthSpent)}</span>
+                  <span>Spent: {formatCurrency(summary.totalSpent + summary.defaultSpends)}</span>
                   <span>{spentPct.toFixed(0)}%</span>
                 </div>
               </div>
@@ -165,7 +168,7 @@ export default function Budget() {
                 <div className="budget-stat-item">
                   <TrendingDown color="rgba(255,255,255,0.8)" size={16} strokeWidth={2} />
                   <div className="budget-stat-label">Spent</div>
-                  <div className="budget-stat-value">{formatCurrency(monthSpent)}</div>
+                  <div className="budget-stat-value">{formatCurrency(summary.totalSpent)}</div>
                 </div>
                 <div className="budget-stat-item">
                   <PiggyBank color="rgba(255,255,255,0.8)" size={16} strokeWidth={2} />
@@ -174,23 +177,23 @@ export default function Budget() {
                 </div>
                 <div className="budget-stat-item">
                   <TrendingUp color="rgba(255,255,255,0.8)" size={16} strokeWidth={2} />
-                  <div className="budget-stat-label">Recurring</div>
-                  <div className="budget-stat-value">{formatCurrency(recurringTotal)}</div>
+                  <div className="budget-stat-label">Default Spends</div>
+                  <div className="budget-stat-value">{formatCurrency(summary.defaultSpends)}</div>
                 </div>
               </div>
             </>
           )}
 
-          {monthlyBudget === 0 && (
+          {monthlyIncome === 0 && (
             <div className="budget-empty-hint">
               <Wallet color="rgba(255,255,255,0.6)" size={32} strokeWidth={1.5} />
-              <div>Tap "Set" to define your monthly budget</div>
+              <div>Tap "Set" to define your monthly income</div>
             </div>
           )}
         </div>
       ) : (
         <div className="budget-edit-card">
-          <div className="form-label">Set Monthly Budget (INR)</div>
+          <div className="form-label">Set Monthly Income (INR)</div>
           <div className="budget-edit-input-row">
             <span className="currency-symbol">₹</span>
             <input
@@ -207,35 +210,31 @@ export default function Budget() {
           <div className="budget-edit-actions">
             <button className="budget-cancel-btn" onClick={() => setEditingBudget(false)}>Cancel</button>
             <button className="budget-save-btn" onClick={handleSaveBudget} disabled={saving}>
-              {saving ? <div className="spinner" style={{ width: 20, height: 20 }} /> : 'Save Budget'}
+              {saving ? <div className="spinner" style={{ width: 20, height: 20 }} /> : 'Save Income'}
             </button>
           </div>
         </div>
       )}
 
-      {monthlyBudget > 0 && (
+      {monthlyIncome > 0 && (
         <div className="section">
-          <div className="section-title">Budget Summary</div>
+          <div className="section-title">Income Summary</div>
           <div className="budget-summary-card">
             <div className="budget-summary-row">
-              <span className="budget-summary-label">Total Budget</span>
-              <span className="budget-summary-value">{formatCurrency(monthlyBudget)}</span>
+              <span className="budget-summary-label">Total Income</span>
+              <span className="budget-summary-value">{formatCurrency(monthlyIncome)}</span>
             </div>
             <div className="budget-summary-row">
               <span className="budget-summary-label">Total Spent</span>
-              <span className="budget-summary-value" style={{ color: 'var(--error)' }}>{formatCurrency(monthSpent)}</span>
+              <span className="budget-summary-value" style={{ color: 'var(--error)' }}>{formatCurrency(summary.totalSpent)}</span>
             </div>
             <div className="budget-summary-row">
-              <span className="budget-summary-label">Remaining</span>
-              <span className="budget-summary-value" style={{ color: isOverBudget ? 'var(--error)' : 'var(--success)' }}>{formatCurrency(remaining)}</span>
-            </div>
-            <div className="budget-summary-row">
-              <span className="budget-summary-label">Recurring Expenses</span>
-              <span className="budget-summary-value">{formatCurrency(recurringTotal)}</span>
+              <span className="budget-summary-label">Default Spends</span>
+              <span className="budget-summary-value">{formatCurrency(summary.defaultSpends)}</span>
             </div>
             <div className="budget-summary-row" style={{ borderBottom: 'none' }}>
-              <span className="budget-summary-label">After Recurring</span>
-              <span className="budget-summary-value">{formatCurrency(remaining - recurringTotal)}</span>
+              <span className="budget-summary-label">Remaining</span>
+              <span className="budget-summary-value" style={{ color: isOverBudget ? 'var(--error)' : 'var(--success)' }}>{formatCurrency(remaining)}</span>
             </div>
           </div>
         </div>

@@ -123,16 +123,16 @@ export default function Recurring() {
   return (
     <div className="page-content">
       <div className="page-header">
-        <div className="page-header-title">Recurring</div>
+        <div className="page-header-title">Default Spends</div>
         <button className="add-btn" onClick={() => { resetForm(); setShowForm(true); }}>
           <Plus color="var(--text-inverse)" size={22} strokeWidth={2.5} />
         </button>
       </div>
 
       <div className="summary-card" style={{ marginBottom: 16 }}>
-        <div className="summary-label">Total Monthly Recurring</div>
+        <div className="summary-label">Total Monthly Default Spends</div>
         <div className="summary-amount">{formatCurrency(totalActive)}</div>
-        <div className="summary-count">{items.filter((i) => i.active).length} active recurring {items.filter((i) => i.active).length === 1 ? 'expense' : 'expenses'}</div>
+        <div className="summary-count">{items.filter((i) => i.active).length} active default spend{items.filter((i) => i.active).length === 1 ? '' : 's'}</div>
       </div>
 
       {showForm && (
